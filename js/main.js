@@ -169,6 +169,36 @@ async function generateCards() {
  */
 async function generateCardsWithClaude(content) {
   try {
+    const prompt = `你是一位专业的文章概念卡片设计师。请按照以下四阶段流程，将文本转换为三种不同风格的概念卡片：
+
+1. 内容分析与规划
+- 提取核心内容（标题、副标题、核心观点）
+- 识别3-5个主要支撑论点
+- 提取1-2句关键引述
+- 分析内容密度，设定展示策略
+
+2. 结构框架设计
+- 固定尺寸：1080px × 800px
+- 安全区域：1020px × 740px（四周预留30px边距）
+- 区域划分：4-6个固定内容区块
+- 使用网格系统确保对齐
+
+3. 内容填充与美化
+- 渐进式填充，优先级内容优先
+- 区域使用不超过80%空间
+- 应用内容驱动的色彩方案
+- 使用专业图标强化表达
+
+4. 平衡与优化
+- 确保稳定性与创意平衡
+- 验证色彩和谐度
+- 确保视觉层次清晰
+- 严格控制1080px×800px尺寸
+
+请基于此流程，为以下文本生成三种风格（简约、深色、彩色）的概念卡片：
+
+${content}`;
+
     const response = await fetch(CLAUDE_API_URL, {
       method: 'POST',
       headers: {
@@ -176,7 +206,7 @@ async function generateCardsWithClaude(content) {
         'X-API-Key': CLAUDE_API_KEY
       },
       body: JSON.stringify({
-        prompt: `请将以下文本转换为三种不同风格的概念卡片，卡片尺寸为1080px×800px：\n\n${content}`,
+        prompt: prompt,
         max_tokens_to_sample: 2000,
         temperature: 0.7
       })
@@ -185,7 +215,7 @@ async function generateCardsWithClaude(content) {
     if (!response.ok) throw new Error('API请求失败');
     
     const data = await response.json();
-    return data.cards; // 假设API返回包含三张卡片数据的数组
+    return data.cards;
   } catch (error) {
     console.error('Claude API错误:', error);
     throw new Error('卡片生成失败');
@@ -359,19 +389,45 @@ function regenerateCards() {
 /**
  * 下载当前卡片
  */
-function downloadCurrentCard() {
+async function downloadCurrentCard() {
   if (currentCardIndex < 0 || currentCardIndex >= generatedCards.length) return;
   
-  // 在实际应用中，这里应该生成完整尺寸的卡片并下载
-  // 这里使用模拟方法
-  alert('在实际应用中，这里将下载完整尺寸(1080px × 800px)的卡片图片');
+  // 显示加载状态
+  downloadBtn.disabled = true;
+  downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>生成图片中...';
   
-  // 实际实现可能需要使用html2canvas等库将卡片转换为图片
-  // const cardElement = document.querySelector('.card-preview');
-  // html2canvas(cardElement, { width: 1080, height: 800 }).then(canvas => {
-  //   const link = document.createElement('a');
-  //   link.download = '卡片.png';
-  //   link.href = canvas.toDataURL('image/png');
-  //   link.click();
-  // });
+  try {
+    // 创建临时卡片元素
+    const tempCard = document.createElement('div');
+    tempCard.innerHTML = generatedCards[currentCardIndex];
+    tempCard.firstChild.style.width = '1080px';
+    tempCard.firstChild.style.height = '800px';
+    document.body.appendChild(tempCard);
+    
+    // 使用html2canvas生成图片
+    const canvas = await html2canvas(tempCard.firstChild, {
+      width: 1080,
+      height: 800,
+      scale: 2, // 提高清晰度
+      useCORS: true, // 允许加载跨域图片
+      backgroundColor: null // 保持背景透明
+    });
+    
+    // 移除临时元素
+    document.body.removeChild(tempCard);
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.download = `概念卡片_${currentCardIndex + 1}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (error) {
+    console.error('图片生成错误:', error);
+    alert('图片生成失败，请重试');
+  } finally {
+    // 恢复按钮状态
+    downloadBtn.disabled = false;
+    downloadBtn.innerHTML = '<i class="fas fa-download mr-2"></i>下载卡片';
+  }
+}
 }
