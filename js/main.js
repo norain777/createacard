@@ -430,4 +430,3 @@ async function downloadCurrentCard() {
     downloadBtn.innerHTML = '<i class="fas fa-download mr-2"></i>下载卡片';
   }
 }
-}
